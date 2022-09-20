@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/urfave/cli/v2"
+	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/bnb-chain/zkbnb/cmd/flags"
 	"github.com/bnb-chain/zkbnb/service/apiserver"
@@ -50,12 +51,15 @@ func main() {
 				Usage: "Run prover service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
+					flags.PProfFlag,
+					flags.PProfAddrFlag,
+					flags.PProfPortFlag,
 				},
 				Action: func(cCtx *cli.Context) error {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-
+					startPProf(cCtx)
 					return prover.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -64,12 +68,15 @@ func main() {
 				Usage: "Run witness service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
+					flags.PProfFlag,
+					flags.PProfAddrFlag,
+					flags.PProfPortFlag,
 				},
 				Action: func(cCtx *cli.Context) error {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-
+					startPProf(cCtx)
 					return witness.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -78,12 +85,15 @@ func main() {
 				Usage: "Run monitor service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
+					flags.PProfFlag,
+					flags.PProfAddrFlag,
+					flags.PProfPortFlag,
 				},
 				Action: func(cCtx *cli.Context) error {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-
+					startPProf(cCtx)
 					return monitor.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -91,13 +101,16 @@ func main() {
 				Name: "committer",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
+					flags.PProfFlag,
+					flags.PProfAddrFlag,
+					flags.PProfPortFlag,
 				},
 				Usage: "Run committer service",
 				Action: func(cCtx *cli.Context) error {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-
+					startPProf(cCtx)
 					return committer.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -106,12 +119,15 @@ func main() {
 				Usage: "Run sender service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
+					flags.PProfFlag,
+					flags.PProfAddrFlag,
+					flags.PProfPortFlag,
 				},
 				Action: func(cCtx *cli.Context) error {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-
+					startPProf(cCtx)
 					return sender.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -120,12 +136,15 @@ func main() {
 				Usage: "Run apiserver service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
+					flags.PProfFlag,
+					flags.PProfAddrFlag,
+					flags.PProfPortFlag,
 				},
 				Action: func(cCtx *cli.Context) error {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-
+					startPProf(cCtx)
 					return apiserver.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -197,4 +216,20 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		fmt.Println(err)
 	}
+}
+
+func startPProf(ctx *cli.Context) {
+	if !ctx.Bool(flags.PProfFlag.Name) {
+		return
+	}
+	address := fmt.Sprintf("%s:%d",
+		ctx.String(flags.PProfAddrFlag.Name),
+		ctx.Int(flags.PProfPortFlag.Name))
+
+	logx.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
+	go func() {
+		if err := http.ListenAndServe(address, nil); err != nil {
+			logx.Error("Failure in running pprof server", "err", err)
+		}
+	}()
 }

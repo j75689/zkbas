@@ -7,8 +7,8 @@
 # You should install nodejs above v14
 
 # Attention: Set the following variables to the right one before running!!!
-DEPLOY_PATH=~/zkbnb-deploy
-KEY_PATH=~/.zkbnb
+DEPLOY_PATH=/server/dylan/zkbnb-deploy
+KEY_PATH=/server/dylan/.zkbnb
 ZkBNB_REPO_PATH=$(cd `dirname $0`; pwd)
 CMC_TOKEN=cfce503f-fake-fake-fake-bbab5257dac8
 
@@ -28,6 +28,8 @@ rm -rf ${DEPLOY_PATH}-bak && mv ${DEPLOY_PATH} ${DEPLOY_PATH}-bak
 mkdir -p ${DEPLOY_PATH} && cd ${DEPLOY_PATH}
 git clone --branch develop  https://github.com/bnb-chain/zkbnb-contract.git
 git clone --branch develop https://github.com/bnb-chain/zkbnb-crypto.git
+cd zkbnb-crypto && git checkout 8e052d005b0f
+cd ..
 cp -r ${ZkBNB_REPO_PATH} ${DEPLOY_PATH}
 
 
@@ -36,10 +38,10 @@ if [ $flag = "new" ]; then
   echo "new crypto env"
   echo '2. start generate zkbnb.vk and zkbnb.pk'
   cd ${DEPLOY_PATH}
-  cd zkbnb-crypto && go test ./legend/circuit/bn254/solidity -timeout 99999s -run TestExportSol
+  cd zkbnb-crypto && go test ./circuit/bn254/solidity -timeout 99999s -run TestExportSol
   cd ${DEPLOY_PATH}
   mkdir -p $KEY_PATH
-  cp -r ./zkbnb-crypto/legend/circuit/bn254/solidity/* $KEY_PATH
+  cp -r ./zkbnb-crypto/circuit/bn254/solidity/* $KEY_PATH
 fi
 
 
@@ -118,7 +120,7 @@ TreeDB:
 " > ${DEPLOY_PATH}/zkbnb/service/prover/etc/config.yaml
 
 echo -e "
-go run ./cmd/zkbnb/main.go prover --config ${DEPLOY_PATH}/zkbnb/service/prover/etc/config.yaml
+go run ./cmd/zkbnb/main.go prover --config ${DEPLOY_PATH}/zkbnb/service/prover/etc/config.yaml --pprof --pprof.addr 0.0.0.0 --pprof.port 6060
 " > run_prover.sh
 pm2 start --name prover "./run_prover.sh"
 
@@ -223,6 +225,7 @@ ChainConfig:
   MaxBlockCount: 4
   Sk: "acbaa269bd7573ff12361be4b97201aef019776ea13384681d4e5ba6a88367d9"
   GasLimit: 5000000
+  GasPrice: 0
 
 TreeDB:
   Driver: memorydb

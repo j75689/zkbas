@@ -41,4 +41,19 @@ var (
 		Value: 1000,
 		Usage: "batch size for reading history record from the database",
 	}
+	PProfFlag = &cli.BoolFlag{
+		Name:  "pprof",
+		Value: false,
+		Usage: "Enable the pprof HTTP server",
+	}
+	PProfPortFlag = &cli.IntFlag{
+		Name:  "pprof.port",
+		Usage: "pprof HTTP server listening port",
+		Value: 6060,
+	}
+	PProfAddrFlag = &cli.StringFlag{
+		Name:  "pprof.addr",
+		Usage: "pprof HTTP server listening interface",
+		Value: "127.0.0.1",
+	}
 )
