@@ -16,6 +16,9 @@ import (
 	"github.com/bnb-chain/zkbnb/service/witness"
 	"github.com/bnb-chain/zkbnb/tools/dbinitializer"
 	"github.com/bnb-chain/zkbnb/tools/recovery"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 // Build Info (set via linker flags)
@@ -188,6 +191,9 @@ func main() {
 			},
 		},
 	}
+	go func() {
+		fmt.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
 	if err := app.Run(os.Args); err != nil {
 		fmt.Println(err)
 	}
