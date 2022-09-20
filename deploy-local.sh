@@ -48,7 +48,7 @@ fi
 
 echo '3. start verify_parse for ZkBNBVerifier'
 cd ${DEPLOY_PATH}/zkbnb/service/prover/
-python3 verifier_parse.py ${KEY_PATH}/ZkBNBVerifier1.sol,${KEY_PATH}/ZkBNBVerifier10.sol 1,10 ${DEPLOY_PATH}/zkbnb-contract/contracts/ZkBNBVerifier.sol
+python3 verifier_parse.py ${KEY_PATH}/ZkBNBVerifier1.sol,${KEY_PATH}/ZkBNBVerifier80.sol 1,80 ${DEPLOY_PATH}/zkbnb-contract/contracts/ZkBNBVerifier.sol
 
 
 
@@ -110,11 +110,11 @@ CacheRedis:
     Type: node
 
 KeyPath:
-  ProvingKeyPath: [${KEY_PATH}/zkbnb1.pk, ${KEY_PATH}/zkbnb10.pk]
-  VerifyingKeyPath: [${KEY_PATH}/zkbnb1.vk, ${KEY_PATH}/zkbnb10.vk]
+  ProvingKeyPath: [${KEY_PATH}/zkbnb1.pk, ${KEY_PATH}/zkbnb80.pk]
+  VerifyingKeyPath: [${KEY_PATH}/zkbnb1.vk, ${KEY_PATH}/zkbnb80.vk]
 
 BlockConfig:
-  OptionalBlockSizes: [1, 10]
+  OptionalBlockSizes: [1, 80]
 
 TreeDB:
   Driver: memorydb
@@ -194,7 +194,7 @@ CacheRedis:
     Type: node
 
 BlockConfig:
-  OptionalBlockSizes: [1, 10]
+  OptionalBlockSizes: [1, 80]
 
 TreeDB:
   Driver: memorydb
