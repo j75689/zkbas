@@ -19,24 +19,30 @@ import (
 func LoadProvingKey(filepath string) (pk groth16.ProvingKey, err error) {
 	logx.Info("start reading proving key")
 	pk = groth16.NewProvingKey(ecc.BN254)
-	f, _ := os.Open(filepath)
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
 	_, err = pk.ReadFrom(f)
 	if err != nil {
 		return pk, fmt.Errorf("read file error")
 	}
-	f.Close()
 
 	return pk, nil
 }
 
 func LoadVerifyingKey(filepath string) (verifyingKey groth16.VerifyingKey, err error) {
 	verifyingKey = groth16.NewVerifyingKey(ecc.BN254)
-	f, _ := os.Open(filepath)
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
 	_, err = verifyingKey.ReadFrom(f)
 	if err != nil {
 		return verifyingKey, fmt.Errorf("read file error")
 	}
-	f.Close()
 
 	return verifyingKey, nil
 }

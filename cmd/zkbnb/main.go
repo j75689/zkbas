@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
 	"github.com/zeromicro/go-zero/core/logx"
 
@@ -19,7 +20,7 @@ import (
 	"github.com/bnb-chain/zkbnb/tools/recovery"
 
 	"net/http"
-	_ "net/http/pprof"
+	pprof "net/http/pprof"
 )
 
 // Build Info (set via linker flags)
@@ -51,7 +52,10 @@ func main() {
 				Usage: "Run prover service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
-					flags.PProfFlag,
+					flags.MetricsEnabledFlag,
+					flags.MetricsHTTPFlag,
+					flags.MetricsPortFlag,
+					flags.PProfEnabledFlag,
 					flags.PProfAddrFlag,
 					flags.PProfPortFlag,
 				},
@@ -59,7 +63,7 @@ func main() {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-					startPProf(cCtx)
+					startMetricsServer(cCtx)
 					return prover.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -68,7 +72,10 @@ func main() {
 				Usage: "Run witness service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
-					flags.PProfFlag,
+					flags.MetricsEnabledFlag,
+					flags.MetricsHTTPFlag,
+					flags.MetricsPortFlag,
+					flags.PProfEnabledFlag,
 					flags.PProfAddrFlag,
 					flags.PProfPortFlag,
 				},
@@ -76,7 +83,7 @@ func main() {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-					startPProf(cCtx)
+					startMetricsServer(cCtx)
 					return witness.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -85,7 +92,10 @@ func main() {
 				Usage: "Run monitor service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
-					flags.PProfFlag,
+					flags.MetricsEnabledFlag,
+					flags.MetricsHTTPFlag,
+					flags.MetricsPortFlag,
+					flags.PProfEnabledFlag,
 					flags.PProfAddrFlag,
 					flags.PProfPortFlag,
 				},
@@ -93,7 +103,7 @@ func main() {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-					startPProf(cCtx)
+					startMetricsServer(cCtx)
 					return monitor.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -101,7 +111,10 @@ func main() {
 				Name: "committer",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
-					flags.PProfFlag,
+					flags.MetricsEnabledFlag,
+					flags.MetricsHTTPFlag,
+					flags.MetricsPortFlag,
+					flags.PProfEnabledFlag,
 					flags.PProfAddrFlag,
 					flags.PProfPortFlag,
 				},
@@ -110,7 +123,7 @@ func main() {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-					startPProf(cCtx)
+					startMetricsServer(cCtx)
 					return committer.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -119,7 +132,10 @@ func main() {
 				Usage: "Run sender service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
-					flags.PProfFlag,
+					flags.MetricsEnabledFlag,
+					flags.MetricsHTTPFlag,
+					flags.MetricsPortFlag,
+					flags.PProfEnabledFlag,
 					flags.PProfAddrFlag,
 					flags.PProfPortFlag,
 				},
@@ -127,7 +143,7 @@ func main() {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-					startPProf(cCtx)
+					startMetricsServer(cCtx)
 					return sender.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -136,7 +152,10 @@ func main() {
 				Usage: "Run apiserver service",
 				Flags: []cli.Flag{
 					flags.ConfigFlag,
-					flags.PProfFlag,
+					flags.MetricsEnabledFlag,
+					flags.MetricsHTTPFlag,
+					flags.MetricsPortFlag,
+					flags.PProfEnabledFlag,
 					flags.PProfAddrFlag,
 					flags.PProfPortFlag,
 				},
@@ -144,7 +163,7 @@ func main() {
 					if !cCtx.IsSet(flags.ConfigFlag.Name) {
 						return cli.ShowSubcommandHelp(cCtx)
 					}
-					startPProf(cCtx)
+					startMetricsServer(cCtx)
 					return apiserver.Run(cCtx.String(flags.ConfigFlag.Name))
 				},
 			},
@@ -218,18 +237,59 @@ func main() {
 	}
 }
 
-func startPProf(ctx *cli.Context) {
-	if !ctx.Bool(flags.PProfFlag.Name) {
+func startMetricsServer(ctx *cli.Context) {
+	if !ctx.Bool(flags.PProfEnabledFlag.Name) && !ctx.Bool(flags.MetricsEnabledFlag.Name) {
 		return
 	}
-	address := fmt.Sprintf("%s:%d",
+
+	httpServer := http.NewServeMux()
+
+	if ctx.Bool(flags.PProfEnabledFlag.Name) {
+		httpServer.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+		httpServer.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+		httpServer.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+		httpServer.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+		httpServer.Handle("/debug/pprof/block", pprof.Handler("block"))
+		httpServer.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	}
+	if ctx.Bool(flags.MetricsEnabledFlag.Name) {
+		httpServer.Handle("/debug/metrics", promhttp.Handler())
+	}
+
+	pprofAddress := fmt.Sprintf("%s:%d",
 		ctx.String(flags.PProfAddrFlag.Name),
 		ctx.Int(flags.PProfPortFlag.Name))
+	metricsAddress := fmt.Sprintf("%s:%d",
+		ctx.String(flags.MetricsHTTPFlag.Name),
+		ctx.Int(flags.MetricsPortFlag.Name))
 
-	logx.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
-	go func() {
-		if err := http.ListenAndServe(address, nil); err != nil {
-			logx.Error("Failure in running pprof server", "err", err)
-		}
-	}()
+	if ctx.Bool(flags.PProfEnabledFlag.Name) && ctx.Bool(flags.MetricsEnabledFlag.Name) && metricsAddress == pprofAddress {
+		go func() {
+			logx.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", pprofAddress))
+			logx.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/debug/metrics", metricsAddress))
+			if err := http.ListenAndServe(pprofAddress, httpServer); err != nil {
+				logx.Error("Failure in running pprof and metrics server", "err", err)
+			}
+		}()
+		return
+	}
+
+	if ctx.Bool(flags.MetricsEnabledFlag.Name) {
+		go func() {
+			logx.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", pprofAddress))
+			if err := http.ListenAndServe(pprofAddress, httpServer); err != nil {
+				logx.Error("Failure in running pprof server", "err", err)
+			}
+		}()
+	}
+
+	if ctx.Bool(flags.MetricsEnabledFlag.Name) {
+		go func() {
+			logx.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/debug/metrics", metricsAddress))
+			if err := http.ListenAndServe(metricsAddress, httpServer); err != nil {
+				logx.Error("Failure in running metrics server", "err", err)
+			}
+		}()
+	}
+
 }

@@ -121,7 +121,7 @@ TreeDB:
 " > ${DEPLOY_PATH}/zkbnb/service/prover/etc/config.yaml
 
 echo -e "
-go run ./cmd/zkbnb/main.go prover --config ${DEPLOY_PATH}/zkbnb/service/prover/etc/config.yaml --pprof --pprof.addr 0.0.0.0 --pprof.port 6060
+GOMEMLIMIT=20GiB GODEBUG=gctrace=1 go run ./cmd/zkbnb/main.go prover --config ${DEPLOY_PATH}/zkbnb/service/prover/etc/config.yaml --pprof --pprof.addr 0.0.0.0 --pprof.port 6060 --metrics --metrics.addr 0.0.0.0 --metrics.port 6060
 " > run_prover.sh
 pm2 start --name prover "./run_prover.sh"
 
