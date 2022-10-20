@@ -493,7 +493,7 @@ func (s *StateDB) PrepareNft(nftIndex int64) (*nft.L2Nft, error) {
 }
 
 func (s *StateDB) IntermediateRoot(taskPool *ants.Pool, cleanDirty bool) error {
-	tasks := make([]func(), 0, len(s.dirtyAccountsAndAssetsMap)+len(s.dirtyNftMap))
+	taskNum := 0
 	errorChan := make(chan error, 1)
 	for accountIndex, assetsMap := range s.dirtyAccountsAndAssetsMap {
 		assets := make([]int64, 0, len(assetsMap))
@@ -503,8 +503,8 @@ func (s *StateDB) IntermediateRoot(taskPool *ants.Pool, cleanDirty bool) error {
 			}
 			assets = append(assets, assetIndex)
 		}
-
-		tasks = append(tasks, func() {
+		taskNum++
+		taskPool.Submit(func() {
 			errorChan <- s.updateAccountTree(accountIndex, assets)
 		})
 	}
@@ -513,7 +513,9 @@ func (s *StateDB) IntermediateRoot(taskPool *ants.Pool, cleanDirty bool) error {
 		if !isDirty {
 			continue
 		}
-		tasks = append(tasks, func() {
+		taskNum++
+
+		taskPool.Submit(func() {
 			errorChan <- s.updateNftTree(nftIndex)
 		})
 	}
@@ -523,7 +525,7 @@ func (s *StateDB) IntermediateRoot(taskPool *ants.Pool, cleanDirty bool) error {
 		s.dirtyNftMap = make(map[int64]bool, 0)
 	}
 
-	for range tasks {
+	for i := 0; i < taskNum; i++ {
 		err := <-errorChan
 		if err != nil {
 			return err
